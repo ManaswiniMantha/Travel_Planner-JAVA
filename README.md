@@ -11,7 +11,7 @@ made by plain Java code in `TravelPlanner.java`. **Nothing is hard-coded per cit
 
 | Tool | Version | Notes |
 |---|---|---|
-| JDK | **17 or newer** (tested on 21) | `java -version` must show 17+ |
+| JDK | **23 or newer** | `java -version` must show 23+ (JavaFX 25 needs it) |
 | Maven | optional | The project includes the **Maven Wrapper** (`mvnw.cmd` / `mvnw`), which downloads Maven automatically |
 | Internet | recommended | Works offline too (cached / demo data), see section 5 |
 
@@ -54,11 +54,8 @@ SEARCH_RADIUS_KM=12
 run.bat
 
 # any OS, with the Maven Wrapper
-mvnw.cmd javafx:run        # Windows
-./mvnw javafx:run          # Mac / Linux
-
-# or, if Maven is installed
-mvn javafx:run
+mvnw.cmd compile exec:exec     # Windows
+./mvnw compile exec:exec       # Mac / Linux
 ```
 
 ### Demo test case
@@ -79,6 +76,8 @@ interests **Beaches + History + Food**, pace **Moderate** → **GENERATE MY ITIN
 | **Wikipedia REST summary** | none | One-line description for the places that end up in the itinerary |
 | **Wikidata** `wikidata.org/w/api.php` | none | Fame score: how many Wikipedia languages cover a place (ranking) |
 | **open.er-api.com** | none | INR → local currency, for display only (e.g. "≈ €12" in Paris) |
+| **Photon** `photon.komoot.io` | none | Fast suggestions while typing (OpenRouteService autocomplete is the backup) |
+| **CARTO map tiles** (OpenStreetMap data) | none | Background map in the result screen's map view |
 
 ORS is a routing service, not a database of tourist places, which is why place discovery uses Overpass.
 The Directions API is left as a documented stub in `OpenRouteServiceClient` (future work).
@@ -154,7 +153,10 @@ All of this lives in `TravelPlanner.java`, and all estimate constants are in one
 | Class | Responsibility |
 |---|---|
 | `Main` | JavaFX app, screen switching, background `Task`, save dialog |
-| `PlanningView` / `ResultView` | The two screens (form + itinerary) |
+| `PlanningView` / `ResultView` | The two screens: ticket-style form; timeline + map |
+| `MapView` | Interactive map (JavaFX `WebView` + bundled Leaflet library) |
+| `Theme` | Light/dark mode (remembered between runs), fonts, day colours |
+| `PhotonClient` | Fast place suggestions while typing |
 | `UserPreferences` | Form data + `validate()` (throws `IllegalArgumentException`) |
 | `Place`, `Itinerary` | Data classes |
 | `TravelPlanner` | **The algorithm** (fame, scoring, budget, greedy routing, scheduling) |
@@ -222,3 +224,22 @@ providers through its constructor (*dependency injection*). The app passes the r
 tests pass small fake classes from `TestData.java` that implement the same `Geocoder` and
 `PlaceProvider` interfaces and return a made-up city. So the tests never touch the internet and always
 give the same result, which is only possible because of the interfaces.
+
+---
+
+## 10. User interface
+
+- **Planning screen** looks like a travel ticket: *From → To* on top, a tear-off line, then days,
+  travellers, budget, interest toggles and a pace selector (with a hint like "3-4 places a day").
+- **Result screen** is split: the day-by-day **timeline** on the left (numbered stops, travel time
+  between them, must-see badges, collapsible days, a costs panel with a budget bar) and an
+  **interactive map** on the right. The chips above the map switch between all days and one day;
+  each day has its own colour, and the numbers on the map match the numbers in the timeline.
+- **Dark mode**: button in the top bar; the choice is remembered (Java `Preferences`).
+- Colours are CSS variables in `style.css` (`.root` for light, `.root.dark` for dark).
+
+The map's lines connect the stops in visiting order (straight lines); the travel times shown in the
+timeline come from the road matrix. Map tiles need an internet connection.
+
+**Bundled third-party files:** IBM Plex Sans font (SIL Open Font License, `resources/fonts`) and the
+Leaflet map library (BSD-2-Clause, `resources/map`). Map data © OpenStreetMap contributors, tiles © CARTO.

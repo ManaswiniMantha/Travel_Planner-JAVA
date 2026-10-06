@@ -11,9 +11,9 @@
     <name>Personalized Travel Planner</name>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>23</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>21.0.5</javafx.version>
+        <javafx.version>25.0.2</javafx.version>
     </properties>
 
     <dependencies>
@@ -21,6 +21,12 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <!-- JavaFX WebView, used to show the interactive map on the result screen -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
             <version>${javafx.version}</version>
         </dependency>
         <!-- Gson for parsing JSON API responses -->
@@ -51,7 +57,24 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
             </plugin>
-            <!-- Run the app with:  mvn javafx:run -->
+            <!-- Runs the app (used by run.bat):  mvnw compile exec:exec
+                 Starts a separate Java process with everything on the normal classpath, through the
+                 small Launcher class. This avoids Java-module problems with JavaFX's web view
+                 (the map) on new Java versions. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <executable>${java.home}/bin/java</executable>
+                    <arguments>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>travelplanner.Launcher</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+            <!-- Alternative way to run:  mvn javafx:run -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>

@@ -197,6 +197,7 @@ public class TravelPlanner {
         }
         itinerary.setDestinationLabel(dest.getLabel());
         itinerary.setCountryCode(dest.getCountryCode());
+        itinerary.setDestinationCoordinates(dest.getLat(), dest.getLon());
         costFactor = countryCostFactor(dest.getCountryCode());
 
         // the start location is only needed for the header, so look it up IN PARALLEL

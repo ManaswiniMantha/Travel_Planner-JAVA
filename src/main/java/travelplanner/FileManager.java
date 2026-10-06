@@ -89,9 +89,9 @@ public class FileManager {
 
     public static String travelText(ItineraryItem item) {
         String km = String.format("%.1f km", item.getTravelDistanceKmFromPrevious());
-        if (item.getTravelDistanceKmFromPrevious() < 0.05) return "a short walk";
-        if (item.isDistanceLive()) return item.getTravelMinutesFromPrevious() + " min · " + km;
-        return item.getTravelMinutesFromPrevious() + " min · ≈ " + km + " (est.)";
+        if (item.getTravelDistanceKmFromPrevious() < 0.3 || item.getTravelMinutesFromPrevious() < 1) return "a short walk";
+        if (item.isDistanceLive()) return item.getTravelMinutesFromPrevious() + " min by road, " + km;
+        return "about " + item.getTravelMinutesFromPrevious() + " min, " + km + " (estimate)";
     }
 
     public static String startDistanceText(Itinerary it) {

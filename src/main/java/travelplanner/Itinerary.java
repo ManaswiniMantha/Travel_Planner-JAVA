@@ -16,6 +16,8 @@ public class Itinerary {
     private double startToDestinationKm = -1;      // -1 = unknown
     private boolean startDistanceIsRoad = false;   // true = live road distance, false = straight line
     private String travelModeHint = "";
+    private double destinationLat;                 // centre of the destination (used by the map)
+    private double destinationLon;
 
     // totals (all estimates)
     private double totalPlaceCost;
@@ -88,6 +90,12 @@ public class Itinerary {
     public boolean isStartDistanceIsRoad() { return startDistanceIsRoad; }
     public void setStartDistanceIsRoad(boolean road) { this.startDistanceIsRoad = road; }
     public String getTravelModeHint() { return travelModeHint; }
+    public double getDestinationLat() { return destinationLat; }
+    public double getDestinationLon() { return destinationLon; }
+    public void setDestinationCoordinates(double lat, double lon) {
+        this.destinationLat = lat;
+        this.destinationLon = lon;
+    }
     public void setTravelModeHint(String travelModeHint) { this.travelModeHint = travelModeHint; }
     public double getTotalPlaceCost() { return totalPlaceCost; }
     public double getTotalTransportCost() { return totalTransportCost; }

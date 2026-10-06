@@ -37,6 +37,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+        Theme.loadFonts();
         ConfigLoader config = new ConfigLoader();
         OpenRouteServiceClient orsClient = new OpenRouteServiceClient(config);
         planner = new TravelPlanner(config, orsClient);
@@ -47,13 +48,14 @@ public class Main extends Application {
 
         // size the window to fit the screen
         Rectangle2D screen = Screen.getPrimary().getVisualBounds();
-        double width = Math.min(1040, screen.getWidth() - 40);
-        double height = Math.min(820, screen.getHeight() - 40);
+        double width = Math.min(1320, screen.getWidth() - 40);
+        double height = Math.min(860, screen.getHeight() - 40);
         Scene scene = new Scene(root, width, height);
         scene.getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+        Theme.attach(scene);   // light or dark mode (remembered from last time)
 
-        stage.setTitle("Personalized Travel Planner");
-        stage.setMinWidth(760);
+        stage.setTitle("Trip Planner");
+        stage.setMinWidth(900);
         stage.setMinHeight(560);
         stage.setScene(scene);
         stage.show();
@@ -122,12 +124,15 @@ public class Main extends Application {
         ProgressIndicator spinner = new ProgressIndicator();
         spinner.setPrefSize(64, 64);
         loadingLabel.getStyleClass().add("loading-text");
-        Label hint = new Label("Fetching real places and routes. This takes a few seconds.");
-        hint.getStyleClass().add("hint-label");
+        Label hint = new Label("Looking up real places and routes. The first search for a city can take "
+                + "up to half a minute; repeat searches are instant.");
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+        hint.setMaxWidth(380);
         VBox card = new VBox(16, spinner, loadingLabel, hint);
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().add("loading-card");
-        card.setMaxSize(460, 240);
+        card.setMaxSize(460, 260);
 
         loadingOverlay.getChildren().add(card);
         loadingOverlay.setAlignment(Pos.CENTER);
@@ -175,6 +180,7 @@ public class Main extends Application {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.getDialogPane().getStylesheets().add(getClass().getResource("/style.css").toExternalForm());
+        if (Theme.isDark()) alert.getDialogPane().getStyleClass().add("dark");
         alert.showAndWait();
     }
 

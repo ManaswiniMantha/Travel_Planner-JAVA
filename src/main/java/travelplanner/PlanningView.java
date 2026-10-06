@@ -9,6 +9,8 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -16,16 +18,18 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * The planning (home) screen: a card-style form with validation.
+ * The planning (home) screen, designed like a travel ticket: the route (From -> To) on top,
+ * a perforated tear-off line, then the trip details. Validates the form before planning.
  * When the form is valid it hands a UserPreferences object to the onGenerate callback.
  */
 public class PlanningView {
 
     public static final String[] INTERESTS = {
-            "Adventure", "Beaches", "Nature", "History", "Food", "Shopping", "Culture", "Relaxation"
+            "History", "Culture", "Nature", "Food", "Beaches", "Shopping", "Adventure", "Relaxation"
     };
 
     private final OpenRouteServiceClient orsClient;
+    private final PhotonClient photonClient = new PhotonClient();
     private final BorderPane view = new BorderPane();
 
     private final TextField destinationField = new TextField();
@@ -33,114 +37,168 @@ public class PlanningView {
     private final TextField daysField = new TextField("3");
     private final TextField budgetField = new TextField("10000");
     private final TextField travelersField = new TextField("2");
-    private final ArrayList<CheckBox> interestBoxes = new ArrayList<>();
+    private final ArrayList<ToggleButton> interestToggles = new ArrayList<>();
     private final ToggleGroup paceGroup = new ToggleGroup();
+    private final Label paceHint = new Label();
     private final Label errorBanner = new Label();
 
     public PlanningView(OpenRouteServiceClient orsClient, ConfigLoader config,
                         Consumer<UserPreferences> onGenerate, Runnable onClearCache) {
         this.orsClient = orsClient;
 
-        // ----- gradient header -----
-        Label title = new Label("✈  Personalized Travel Planner");
-        title.getStyleClass().add("header-title");
-        Label subtitle = new Label("Tell us about your trip — we build a day-by-day plan from real places on the map.");
-        subtitle.getStyleClass().add("header-subtitle");
-        VBox titles = new VBox(4, title, subtitle);
-        Button clearCacheButton = new Button("🗑 Clear cache");
-        clearCacheButton.getStyleClass().add("ghost-button");
+        // ----- top bar: app name + dark mode + clear saved searches -----
+        Button clearCacheButton = new Button("Clear saved searches");
+        clearCacheButton.getStyleClass().add("bar-button");
+        clearCacheButton.setTooltip(new Tooltip("Deletes the cache folder so places are fetched fresh"));
         clearCacheButton.setOnAction(e -> onClearCache.run());
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox header = new HBox(titles, spacer, clearCacheButton);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.getStyleClass().add("header");
-        view.setTop(header);
+        view.setTop(topBar(themeButton(), clearCacheButton));
 
-        // ----- form card -----
-        VBox card = new VBox(18);
-        card.getStyleClass().add("card");
-        card.setMaxWidth(780);
+        // ----- heading -----
+        Label title = new Label("Plan a trip");
+        title.getStyleClass().add("page-title");
+        Label intro = new Label("Real places from OpenStreetMap, arranged into days that fit your budget and pace.");
+        intro.getStyleClass().add("page-intro");
+        intro.setWrapText(true);
+        VBox heading = new VBox(4, title, intro);
 
-        if (!config.isApiKeyAvailable()) {
-            Label keyNotice = new Label("ℹ  " + config.getStatusMessage());
-            keyNotice.getStyleClass().addAll("banner", "info-banner");
-            keyNotice.setWrapText(true);
-            keyNotice.setMaxWidth(Double.MAX_VALUE);
-            card.getChildren().add(keyNotice);
-        }
+        // ----- ticket, part 1: the route -----
+        destinationField.setPromptText("Goa, Paris, Jaipur…");
+        startField.setPromptText("Your city");
+        destinationField.getStyleClass().add("route-field");
+        startField.getStyleClass().add("route-field");
+        Label arrow = new Label("→");
+        arrow.getStyleClass().add("route-arrow");
+        arrow.setMinWidth(Region.USE_PREF_SIZE);
+        HBox routeRow = new HBox(18, routeBox("From", startField), arrow, routeBox("To", destinationField));
+        routeRow.setAlignment(Pos.TOP_LEFT);
+        HBox.setMargin(arrow, new Insets(28, 0, 0, 0));
+        VBox routeSection = new VBox(routeRow);
+        routeSection.getStyleClass().add("ticket-section");
 
-        // where
-        destinationField.setPromptText("e.g. Goa, Paris, Jaipur");
-        startField.setPromptText("e.g. Chennai");
-        HBox whereRow = new HBox(16,
-                fieldBox("🎯 Destination", destinationField, true),
-                fieldBox("🏠 Starting location", startField, true));
-        card.getChildren().addAll(sectionTitle("📍 Where are you going?"), whereRow);
+        // ----- ticket, part 2: the details -----
+        daysField.setPromptText("1-14");
+        budgetField.setPromptText("10000");
+        travelersField.setPromptText("2");
+        HBox numbersRow = new HBox(16,
+                fieldBox("Days", daysField, 110),
+                fieldBox("Travellers", travelersField, 110),
+                fieldBox("Budget for the whole trip (₹)", budgetField, 260));
 
-        // trip details
-        daysField.setPromptText("1 - 14");
-        budgetField.setPromptText("e.g. 10000");
-        travelersField.setPromptText("e.g. 2");
-        HBox detailsRow = new HBox(16,
-                fieldBox("🗓 Number of days", daysField, false),
-                fieldBox("💰 Budget (₹ total)", budgetField, false),
-                fieldBox("👥 Travelers", travelersField, false));
-        card.getChildren().addAll(sectionTitle("📋 Trip details"), detailsRow);
-
-        // interests as checkbox "chips"
-        FlowPane interestPane = new FlowPane(10, 10);
+        FlowPane interestPane = new FlowPane(8, 8);
         for (String interest : INTERESTS) {
-            CheckBox box = new CheckBox(emojiFor(interest) + "  " + interest);
-            box.setUserData(interest);
-            box.getStyleClass().add("chip");
-            interestBoxes.add(box);
-            interestPane.getChildren().add(box);
+            ToggleButton toggle = new ToggleButton(emojiFor(interest) + "  " + interest);
+            toggle.setUserData(interest);
+            toggle.getStyleClass().add("interest-toggle");
+            interestToggles.add(toggle);
+            interestPane.getChildren().add(toggle);
         }
-        card.getChildren().addAll(sectionTitle("❤ What do you enjoy?"), interestPane);
 
-        // pace radio buttons
-        HBox paceRow = new HBox(12);
-        String[][] paces = {
-                {"Relaxed", "🐢 Relaxed  (2-3 / day)"},
-                {"Moderate", "🚶 Moderate  (3-4 / day)"},
-                {"Packed", "🏃 Packed  (5-6 / day)"}};
-        for (String[] p : paces) {
-            RadioButton rb = new RadioButton(p[1]);
-            rb.setUserData(p[0]);
-            rb.setToggleGroup(paceGroup);
-            rb.getStyleClass().add("pace-radio");
-            if (p[0].equals("Moderate")) rb.setSelected(true);
-            paceRow.getChildren().add(rb);
+        HBox paceRow = new HBox();
+        String[][] paces = {{"Relaxed", "Relaxed"}, {"Moderate", "Moderate"}, {"Packed", "Packed"}};
+        for (int i = 0; i < paces.length; i++) {
+            ToggleButton segment = new ToggleButton(paces[i][1]);
+            segment.setUserData(paces[i][0]);
+            segment.setToggleGroup(paceGroup);
+            segment.getStyleClass().add("segment");
+            if (i == 0) segment.getStyleClass().add("first");
+            if (i == paces.length - 1) segment.getStyleClass().add("last");
+            paceRow.getChildren().add(segment);
         }
-        card.getChildren().addAll(sectionTitle("⏱ Travel pace"), paceRow);
+        // a pace must always be chosen: clicking the selected segment again must not unselect it
+        paceGroup.selectedToggleProperty().addListener((obs, old, now) -> {
+            if (now == null && old != null) old.setSelected(true);
+            else updatePaceHint();
+        });
+        selectPace("Moderate");
+        paceHint.getStyleClass().add("hint");
+        HBox paceLine = new HBox(14, paceRow, paceHint);
+        paceLine.setAlignment(Pos.CENTER_LEFT);
 
-        // error banner (hidden until a validation error happens)
         errorBanner.getStyleClass().addAll("banner", "error-banner");
         errorBanner.setWrapText(true);
         errorBanner.setMaxWidth(Double.MAX_VALUE);
         hideError();
 
-        Button generateButton = new Button("✨  GENERATE MY ITINERARY");
+        Button generateButton = new Button("Plan my trip");
         generateButton.getStyleClass().add("primary-button");
-        generateButton.setMaxWidth(Double.MAX_VALUE);
         generateButton.setDefaultButton(true);
         generateButton.setOnAction(e -> {
             UserPreferences prefs = readForm();
             if (prefs != null) onGenerate.accept(prefs);
         });
-        card.getChildren().addAll(errorBanner, generateButton);
 
-        StackPane centerBox = new StackPane(card);
-        centerBox.setPadding(new Insets(28, 24, 36, 24));
-        StackPane.setAlignment(card, Pos.TOP_CENTER);
+        VBox detailsSection = new VBox(20,
+                numbersRow,
+                new VBox(10, groupTitle("What do you enjoy?"), interestPane),
+                new VBox(10, groupTitle("Pace"), paceLine),
+                errorBanner,
+                generateButton);
+        detailsSection.getStyleClass().add("ticket-section");
+
+        VBox ticket = new VBox(routeSection, perforation(), detailsSection);
+        ticket.getStyleClass().add("ticket");
+
+        VBox page = new VBox(22, heading);
+        if (!config.isApiKeyAvailable() && !config.getStatusMessage().isEmpty()) {
+            Label keyNotice = new Label(config.getStatusMessage());
+            keyNotice.getStyleClass().addAll("banner", "warning-banner");
+            keyNotice.setWrapText(true);
+            keyNotice.setMaxWidth(Double.MAX_VALUE);
+            page.getChildren().add(keyNotice);
+        }
+        page.getChildren().add(ticket);
+        page.setMaxWidth(760);
+
+        StackPane centerBox = new StackPane(page);
+        centerBox.setPadding(new Insets(34, 24, 40, 24));
+        StackPane.setAlignment(page, Pos.TOP_CENTER);
         ScrollPane scroll = new ScrollPane(centerBox);
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("scroll-area");
         view.setCenter(scroll);
 
         // put the cursor in the first field once the window is shown
-        Platform.runLater(destinationField::requestFocus);
+        Platform.runLater(startField::requestFocus);
+    }
+
+    /** Navy bar with the app name on the left and the given buttons on the right (also used by ResultView). */
+    static HBox topBar(Node... rightSide) {
+        Label mark = new Label("◆");
+        mark.getStyleClass().add("app-name-mark");
+        Label name = new Label("Trip Planner");
+        name.getStyleClass().add("app-name");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox bar = new HBox(8, mark, name, spacer);
+        bar.getChildren().addAll(rightSide);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("top-bar");
+        return bar;
+    }
+
+    /** Button that switches light/dark mode; its text always says what it will switch TO. */
+    static Button themeButton() {
+        Button b = new Button();
+        b.getStyleClass().add("bar-button");
+        Runnable refresh = () -> b.setText(Theme.isDark() ? "☀  Light mode" : "☾  Dark mode");
+        refresh.run();
+        Theme.darkProperty().addListener((obs, was, now) -> refresh.run());
+        b.setOnAction(e -> Theme.toggle());
+        return b;
+    }
+
+    private void selectPace(String pace) {
+        for (Toggle t : paceGroup.getToggles()) {
+            if (pace.equals(t.getUserData())) t.setSelected(true);
+        }
+        updatePaceHint();
+    }
+
+    private void updatePaceHint() {
+        Toggle t = paceGroup.getSelectedToggle();
+        Pace pace = Pace.fromLabel(t == null ? "Moderate" : (String) t.getUserData());
+        paceHint.setText(pace.getMinActivities() + "-" + pace.getMaxActivities() + " places a day, starting "
+                + ItineraryItem.formatTime(pace.getDayStart()));
     }
 
     public Node getView() {
@@ -160,8 +218,8 @@ public class PlanningView {
             int travelers = parseWholeNumber(travelersField.getText(), "Number of travelers");
 
             ArrayList<String> interests = new ArrayList<>();
-            for (CheckBox box : interestBoxes) {
-                if (box.isSelected()) interests.add((String) box.getUserData());
+            for (ToggleButton toggle : interestToggles) {
+                if (toggle.isSelected()) interests.add((String) toggle.getUserData());
             }
             String pace = paceGroup.getSelectedToggle() == null
                     ? "Moderate" : (String) paceGroup.getSelectedToggle().getUserData();
@@ -195,7 +253,7 @@ public class PlanningView {
     }
 
     public void showError(String message) {
-        errorBanner.setText("⚠  " + message);
+        errorBanner.setText(message);
         errorBanner.setVisible(true);
         errorBanner.setManaged(true);
     }
@@ -212,29 +270,54 @@ public class PlanningView {
         daysField.setText("3");
         budgetField.setText("10000");
         travelersField.setText("2");
-        for (CheckBox box : interestBoxes) box.setSelected(false);
-        for (Toggle t : paceGroup.getToggles()) {
-            if ("Moderate".equals(t.getUserData())) t.setSelected(true);
-        }
+        for (ToggleButton toggle : interestToggles) toggle.setSelected(false);
+        selectPace("Moderate");
         hideError();
     }
 
     // ------------------------------------------------------------------ small UI helpers
 
-    private Label sectionTitle(String text) {
+    private Label groupTitle(String text) {
         Label label = new Label(text);
-        label.getStyleClass().add("section-title");
+        label.getStyleClass().add("group-title");
         return label;
     }
 
-    private VBox fieldBox(String labelText, TextField field, boolean withAutocomplete) {
+    /** "From" / "To" block: small label, big underlined field, suggestion list below. */
+    private VBox routeBox(String labelText, TextField field) {
         Label label = new Label(labelText);
-        label.getStyleClass().add("field-label");
-        VBox box = new VBox(6, label, field);
-        if (withAutocomplete) box.getChildren().add(createAutocomplete(field));
+        label.getStyleClass().add("route-label");
+        VBox box = new VBox(4, label, field, createAutocomplete(field));
         HBox.setHgrow(box, Priority.ALWAYS);
         box.setMaxWidth(Double.MAX_VALUE);
         return box;
+    }
+
+    private VBox fieldBox(String labelText, TextField field, double width) {
+        Label label = new Label(labelText);
+        label.getStyleClass().add("field-label");
+        VBox box = new VBox(6, label, field);
+        box.setPrefWidth(width);
+        return box;
+    }
+
+    /** Dashed tear-off line with a half-circle notch on each side, like a ticket stub. */
+    private StackPane perforation() {
+        Line line = new Line(0, 0, 100, 0);
+        line.getStyleClass().add("perforation");
+        Circle left = new Circle(11);
+        Circle right = new Circle(11);
+        left.getStyleClass().add("notch");
+        right.getStyleClass().add("notch");
+        StackPane strip = new StackPane(line, left, right);
+        strip.setMinHeight(22);
+        StackPane.setAlignment(left, Pos.CENTER_LEFT);
+        StackPane.setAlignment(right, Pos.CENTER_RIGHT);
+        left.setTranslateX(-11);
+        right.setTranslateX(11);
+        // the dashed line always spans the ticket's width (minus the notches)
+        line.endXProperty().bind(strip.widthProperty().subtract(44));
+        return strip;
     }
 
     /**
@@ -247,6 +330,7 @@ public class PlanningView {
         list.getStyleClass().add("suggestions");
         list.setFocusTraversable(false);   // keeps keyboard focus in the text field
         list.setPrefHeight(150);
+        list.setFixedCellSize(34);
         list.setVisible(false);
         list.setManaged(false);
 
@@ -264,7 +348,7 @@ public class PlanningView {
 
         debounce.setOnFinished(e -> {
             String text = field.getText().trim();
-            if (!orsClient.isAutocompleteAvailable() || text.length() < 3 || !field.isFocused()) {
+            if (text.length() < 3 || !field.isFocused()) {
                 hideList(list);
                 return;
             }
@@ -272,7 +356,9 @@ public class PlanningView {
             Task<List<String>> task = new Task<>() {
                 @Override
                 protected List<String> call() {
-                    return orsClient.autocomplete(text);
+                    // Photon is fast and needs no key; OpenRouteService is the backup
+                    List<String> suggestions = photonClient.suggest(text);
+                    return suggestions.isEmpty() ? orsClient.autocomplete(text) : suggestions;
                 }
             };
             task.setOnSucceeded(ev -> {
