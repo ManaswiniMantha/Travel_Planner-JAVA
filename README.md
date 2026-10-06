@@ -201,3 +201,24 @@ races the main server against the mirror when the main one is slow.
 | Lambdas / method references | `pool.submit(() -> ...)`, `Comparator.comparingDouble(Place::getScore)` |
 | File I/O, try-with-resources | `FileManager` (save .txt), `CacheManager`, `ConfigLoader` |
 | Static members / static initializer block | `ItineraryItem.formatTime()`, `OverpassClient.LANDMARK_FILTERS` |
+
+---
+
+## 9. Automated tests (JUnit 5)
+
+Run them with **`test.bat`** (Windows, double-click) or `mvnw.cmd test` / `./mvnw test`.
+The first run downloads JUnit (a few MB). All tests run **offline** in a few seconds.
+
+| Test class | What it checks |
+|---|---|
+| `TravelPlannerTest` | right number of days, **never over budget**, pace limits, activities end on time, lunch not before 12:30, no overlapping stops, no place twice, unknown destination error, fallback to the next place source, small-budget note, offline estimates |
+| `UserPreferencesTest` | every form validation rule (empty fields, 1-14 days, budget, travelers, interests) |
+| `PaceTest` | the `Pace` enum: text conversion, defaults, sensible settings, `suits()` |
+| `ItineraryItemTest` | time/duration formatting, **polymorphism** of `ActivityItem` vs `MealItem` |
+| `HaversineUtilTest` | straight-line distance formula (e.g. Bangalore-Chennai about 290 km) |
+
+**How the planner is tested offline (viva point):** `TravelPlanner` receives its geocoders and place
+providers through its constructor (*dependency injection*). The app passes the real API clients; the
+tests pass small fake classes from `TestData.java` that implement the same `Geocoder` and
+`PlaceProvider` interfaces and return a made-up city. So the tests never touch the internet and always
+give the same result, which is only possible because of the interfaces.

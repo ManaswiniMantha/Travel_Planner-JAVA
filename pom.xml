@@ -29,6 +29,13 @@
             <artifactId>gson</artifactId>
             <version>2.11.0</version>
         </dependency>
+        <!-- JUnit 5 for the automated tests (only used by "mvnw test", not in the app) -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.3</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -37,6 +44,12 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
+            </plugin>
+            <!-- Runs the JUnit tests:  mvn test  (or test.bat) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
             </plugin>
             <!-- Run the app with:  mvn javafx:run -->
             <plugin>

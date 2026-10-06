@@ -140,11 +140,30 @@ public class TravelPlanner {
     private double costFactor;
 
     public TravelPlanner(ConfigLoader config, OpenRouteServiceClient orsClient) {
+        this(config, orsClient, defaultGeocoders(orsClient), defaultProviders());
+    }
+
+    /**
+     * DEPENDENCY INJECTION: the geocoders and place providers are passed in from outside.
+     * The app uses the real ones (constructor above, via this(...)); the automated tests pass
+     * small fake ones, so the algorithm can be tested offline with known places.
+     */
+    TravelPlanner(ConfigLoader config, OpenRouteServiceClient orsClient,
+                  List<Geocoder> geocoders, List<PlaceProvider> placeProviders) {
         this.config = config;
         this.orsClient = orsClient;
-        FallbackData fallbackData = new FallbackData();
-        this.geocoders = List.of(orsClient, new NominatimClient(), fallbackData);
-        this.placeProviders = List.of(new OverpassClient(), fallbackData);
+        this.geocoders = geocoders;
+        this.placeProviders = placeProviders;
+    }
+
+    private static final FallbackData FALLBACK_DATA = new FallbackData();
+
+    private static List<Geocoder> defaultGeocoders(OpenRouteServiceClient orsClient) {
+        return List.of(orsClient, new NominatimClient(), FALLBACK_DATA);
+    }
+
+    private static List<PlaceProvider> defaultProviders() {
+        return List.of(new OverpassClient(), FALLBACK_DATA);
     }
 
     /**

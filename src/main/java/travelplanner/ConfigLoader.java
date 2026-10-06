@@ -26,6 +26,17 @@ public class ConfigLoader {
         load();
     }
 
+    /**
+     * Second constructor (constructor OVERLOADING), used by the automated tests:
+     * settings are given directly instead of being read from config.properties.
+     * Pass an empty key for offline mode, so tests never call the internet.
+     */
+    ConfigLoader(String apiKey, double searchRadiusKm) {
+        this.apiKey = apiKey == null ? "" : apiKey.trim();
+        this.searchRadiusKm = searchRadiusKm;
+        this.apiKeyAvailable = !this.apiKey.isEmpty() && !this.apiKey.equals(PLACEHOLDER_KEY);
+    }
+
     private void load() {
         File file = new File(CONFIG_FILE);
         if (!file.exists()) {
