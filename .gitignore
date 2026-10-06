@@ -1,0 +1,8 @@
+# never commit the real API key
+config.properties
+cache/
+target/
+*.class
+.idea/
+.vscode/
+*.iml

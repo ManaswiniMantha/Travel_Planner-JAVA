@@ -1,0 +1,44 @@
+{
+  "_comment": "DEMO FALLBACK ONLY. Used when the Overpass API is unreachable and nothing is cached. These are just candidate PLACES - the itinerary itself is still generated dynamically by TravelPlanner (scoring, budget guard, greedy routing, scheduling). Tags use the same OpenStreetMap format as live data.",
+  "cities": [
+    {
+      "city": "Goa", "country": "IN", "lat": 15.5200, "lon": 73.8000,
+      "places": [
+        {"name": "Baga Beach", "lat": 15.5553, "lon": 73.7517, "tags": {"natural": "beach", "wikipedia": "en:Baga, Goa"}},
+        {"name": "Calangute Beach", "lat": 15.5439, "lon": 73.7553, "tags": {"natural": "beach", "wikidata": "Q5019665"}},
+        {"name": "Candolim Beach", "lat": 15.5180, "lon": 73.7623, "tags": {"natural": "beach"}},
+        {"name": "Fort Aguada", "lat": 15.4925, "lon": 73.7735, "tags": {"historic": "fort", "wikipedia": "en:Fort Aguada"}},
+        {"name": "Chapora Fort", "lat": 15.6060, "lon": 73.7366, "tags": {"historic": "fort", "wikipedia": "en:Chapora Fort"}},
+        {"name": "Reis Magos Fort", "lat": 15.4960, "lon": 73.8090, "tags": {"historic": "fort", "wikipedia": "en:Reis Magos Fort"}},
+        {"name": "Basilica of Bom Jesus", "lat": 15.5009, "lon": 73.9116, "tags": {"amenity": "place_of_worship", "historic": "church", "wikipedia": "en:Basilica of Bom Jesus"}},
+        {"name": "Anjuna Flea Market", "lat": 15.5733, "lon": 73.7407, "tags": {"amenity": "marketplace"}},
+        {"name": "Britto's", "lat": 15.5560, "lon": 73.7520, "tags": {"amenity": "restaurant", "cuisine": "goan;seafood"}},
+        {"name": "Infantaria", "lat": 15.5426, "lon": 73.7631, "tags": {"amenity": "cafe", "cuisine": "bakery"}}
+      ]
+    },
+    {
+      "city": "Paris", "country": "FR", "lat": 48.8566, "lon": 2.3522,
+      "places": [
+        {"name": "Eiffel Tower", "lat": 48.8584, "lon": 2.2945, "tags": {"tourism": "attraction", "wikipedia": "en:Eiffel Tower"}},
+        {"name": "Louvre Museum", "lat": 48.8606, "lon": 2.3376, "tags": {"tourism": "museum", "wikipedia": "en:Louvre"}},
+        {"name": "Arc de Triomphe", "lat": 48.8738, "lon": 2.2950, "tags": {"historic": "monument", "wikipedia": "en:Arc de Triomphe"}},
+        {"name": "Sacré-Cœur Basilica", "lat": 48.8867, "lon": 2.3431, "tags": {"amenity": "place_of_worship", "wikipedia": "en:Sacré-Cœur, Paris"}},
+        {"name": "Jardin du Luxembourg", "lat": 48.8462, "lon": 2.3372, "tags": {"leisure": "park", "wikipedia": "en:Jardin du Luxembourg"}},
+        {"name": "Galeries Lafayette", "lat": 48.8738, "lon": 2.3320, "tags": {"shop": "department_store", "wikipedia": "en:Galeries Lafayette"}},
+        {"name": "Café de Flore", "lat": 48.8541, "lon": 2.3326, "tags": {"amenity": "cafe", "cuisine": "french"}},
+        {"name": "Le Procope", "lat": 48.8530, "lon": 2.3389, "tags": {"amenity": "restaurant", "cuisine": "french"}}
+      ]
+    },
+    {
+      "city": "Chennai", "country": "IN", "lat": 13.0827, "lon": 80.2707,
+      "places": [
+        {"name": "Marina Beach", "lat": 13.0500, "lon": 80.2824, "tags": {"natural": "beach", "wikipedia": "en:Marina Beach"}},
+        {"name": "Fort St. George", "lat": 13.0796, "lon": 80.2873, "tags": {"historic": "fort", "wikipedia": "en:Fort St. George, India"}},
+        {"name": "Kapaleeshwarar Temple", "lat": 13.0339, "lon": 80.2696, "tags": {"amenity": "place_of_worship", "wikipedia": "en:Kapaleeshwarar Temple"}},
+        {"name": "Government Museum", "lat": 13.0697, "lon": 80.2560, "tags": {"tourism": "museum", "wikipedia": "en:Government Museum, Chennai"}},
+        {"name": "Elliot's Beach", "lat": 12.9986, "lon": 80.2730, "tags": {"natural": "beach"}},
+        {"name": "Ratna Cafe", "lat": 13.0569, "lon": 80.2774, "tags": {"amenity": "restaurant", "cuisine": "south_indian"}}
+      ]
+    }
+  ]
+}
