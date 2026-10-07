@@ -25,6 +25,12 @@ public class FileManager {
             w.write("Starting from   : " + it.getStartLabel()); w.newLine();
             if (it.getStartToDestinationKm() > 0) {
                 w.write("Journey         : " + startDistanceText(it) + "  " + it.getTravelModeHint()); w.newLine();
+                for (TransportOption o : it.getTransportOptions()) {
+                    w.write(String.format("  %-22s %-14s %s return for the group%s", o.getMode().getDisplayName(),
+                            o.getDurationText(), Itinerary.formatInr(o.getReturnCostForGroup()),
+                            o.isRecommended() ? "  (recommended)" : ""));
+                    w.newLine();
+                }
             }
             w.write("Days            : " + p.getDays()); w.newLine();
             w.write("Travelers       : " + p.getTravelers()); w.newLine();
@@ -68,7 +74,14 @@ public class FileManager {
             w.write("Local transport (est.) : " + Itinerary.formatInr(it.getTotalTransportCost())); w.newLine();
             w.write("Estimated total cost   : " + Itinerary.formatInr(it.getTotalCost())); w.newLine();
             w.write("Budget                 : " + Itinerary.formatInr(it.getBudget())); w.newLine();
-            w.write("Remaining budget       : " + Itinerary.formatInr(it.getRemainingBudget())); w.newLine();
+            if (it.getChosenTransport() != null) {
+                w.write("Travel there and back  : " + Itinerary.formatInr(it.getJourneyCost())
+                        + " (" + it.getChosenTransport().getMode().getDisplayName() + ")"); w.newLine();
+                w.write("Grand total            : " + Itinerary.formatInr(it.getGrandTotal())); w.newLine();
+                w.write("Remaining budget       : " + Itinerary.formatInr(it.getRemainingAfterJourney())); w.newLine();
+            } else {
+                w.write("Remaining budget       : " + Itinerary.formatInr(it.getRemainingBudget())); w.newLine();
+            }
             w.write(String.format("Total travel distance  : %.1f km", it.getTotalDistanceKm())); w.newLine();
             w.write("Total travel time      : " + ItineraryItem.formatDuration(it.getTotalTravelMinutes())); w.newLine();
             w.newLine();

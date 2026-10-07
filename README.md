@@ -77,7 +77,7 @@ interests **Beaches + History + Food**, pace **Moderate** → **GENERATE MY ITIN
 | **Wikidata** `wikidata.org/w/api.php` | none | Fame score: how many Wikipedia languages cover a place (ranking) |
 | **open.er-api.com** | none | INR → local currency, for display only (e.g. "≈ €12" in Paris) |
 | **Photon** `photon.komoot.io` | none | Fast suggestions while typing (OpenRouteService autocomplete is the backup) |
-| **CARTO map tiles** (OpenStreetMap data) | none | Background map in the result screen's map view |
+| **CARTO map tiles** (OpenStreetMap data) | free key, optional (`CARTO_API_KEY`) | Background map. Since Aug 2026 CARTO watermarks tiles requested without a key; with no key the app uses the standard OpenStreetMap tiles instead |
 
 ORS is a routing service, not a database of tourist places, which is why place discovery uses Overpass.
 The Directions API is left as a documented stub in `OpenRouteServiceClient` (future work).
@@ -157,6 +157,7 @@ All of this lives in `TravelPlanner.java`, and all estimate constants are in one
 | `MapView` | Interactive map (JavaFX `WebView` + bundled Leaflet library) |
 | `Theme` | Light/dark mode (remembered between runs), fonts, day colours |
 | `PhotonClient` | Fast place suggestions while typing |
+| `TransportEstimator`, `TransportOption` | "Getting there and back": flight / train / bus / car with time and return price |
 | `UserPreferences` | Form data + `validate()` (throws `IllegalArgumentException`) |
 | `Place`, `Itinerary` | Data classes |
 | `TravelPlanner` | **The algorithm** (fame, scoring, budget, greedy routing, scheduling) |
@@ -218,6 +219,7 @@ The first run downloads JUnit (a few MB). All tests run **offline** in a few sec
 | `PaceTest` | the `Pace` enum: text conversion, defaults, sensible settings, `suits()` |
 | `ItineraryItemTest` | time/duration formatting, **polymorphism** of `ActivityItem` vs `MealItem` |
 | `HaversineUtilTest` | straight-line distance formula (e.g. Bangalore-Chennai about 290 km) |
+| `TransportEstimatorTest` | which transport types are offered, return prices for the group, cars per group, one recommendation |
 
 **How the planner is tested offline (viva point):** `TravelPlanner` receives its geocoders and place
 providers through its constructor (*dependency injection*). The app passes the real API clients; the
@@ -235,6 +237,10 @@ give the same result, which is only possible because of the interfaces.
   between them, must-see badges, collapsible days, a costs panel with a budget bar) and an
   **interactive map** on the right. The chips above the map switch between all days and one day;
   each day has its own colour, and the numbers on the map match the numbers in the timeline.
+- **Getting there and back**: flight / train / bus / car options for the journey from the start city,
+  with travel time and a rough return price for the whole group (per-km fares; a recommendation is
+  the cheapest option under 12 hours). Picking one adds it to the costs panel as a grand total
+  (activities + journey) compared with the budget; the activity plan itself stays the same.
 - **Dark mode**: button in the top bar; the choice is remembered (Java `Preferences`).
 - Colours are CSS variables in `style.css` (`.root` for light, `.root.dark` for dark).
 

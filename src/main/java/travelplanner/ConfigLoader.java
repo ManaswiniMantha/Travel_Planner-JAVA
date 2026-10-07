@@ -21,6 +21,7 @@ public class ConfigLoader {
     private double searchRadiusKm = 12;
     private boolean apiKeyAvailable = false;
     private String statusMessage = "";
+    private String mapTileKey = "";   // optional free CARTO key for the map background
 
     public ConfigLoader() {
         load();
@@ -54,6 +55,7 @@ public class ConfigLoader {
         }
 
         apiKey = props.getProperty("ORS_API_KEY", "").trim();
+        mapTileKey = props.getProperty("CARTO_API_KEY", "").trim();
 
         try {
             searchRadiusKm = Double.parseDouble(props.getProperty("SEARCH_RADIUS_KM", "12").trim());
@@ -75,4 +77,5 @@ public class ConfigLoader {
     public double getSearchRadiusKm() { return searchRadiusKm; }
     public boolean isApiKeyAvailable() { return apiKeyAvailable; }
     public String getStatusMessage() { return statusMessage; }
+    public String getMapTileKey() { return mapTileKey; }
 }

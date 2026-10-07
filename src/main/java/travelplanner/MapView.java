@@ -16,17 +16,25 @@ import java.util.ArrayList;
  * Interactive map of the itinerary, shown on the result screen.
  *
  * A JavaFX WebView displays a small web page that uses Leaflet (an open-source map library,
- * bundled in src/main/resources/map so it works without a CDN). Map tiles come from CARTO,
- * drawn from OpenStreetMap data. Java talks to the page by calling JavaScript functions
+ * bundled in src/main/resources/map so it works without a CDN). The background map comes from
+ * CARTO (needs a free key, CARTO_API_KEY in config.properties, since August 2026) or, without a
+ * key, from the standard OpenStreetMap tiles. Java talks to the page by calling JavaScript functions
  * (setTrip, showDay, setTheme) with WebEngine.executeScript().
  */
 public class MapView extends StackPane {
+
+    private static String tileKey = "";   // set once at startup from config.properties
 
     private final WebView webView = new WebView();
     private final WebEngine engine = webView.getEngine();
     private boolean pageReady = false;
     private String pendingTripJson;   // trip data that arrived before the page finished loading
     private int pendingDay = -1;
+
+    /** CARTO key (empty = use OpenStreetMap tiles instead). */
+    public static void setTileKey(String key) {
+        tileKey = key == null ? "" : key.trim().replaceAll("[^A-Za-z0-9_\\-]", "");   // keep it URL-safe
+    }
 
     public MapView() {
         getStyleClass().add("map-view");
@@ -103,9 +111,13 @@ public class MapView extends StackPane {
         return "<!DOCTYPE html><html><head><meta charset='utf-8'><style>"
                 + readResource("/map/leaflet.css")
                 + PAGE_CSS
-                + "</style><script>" + readResource("/map/leaflet.js") + "</script></head>"
+                // L_DISABLE_3D: position map squares without 3D transforms. With Windows display
+                // scaling (125%/150%) JavaFX's browser draws 3D-positioned squares at the wrong size
+                // and place, which showed up as missing / overlapping squares.
+                + "</style><script>L_DISABLE_3D=true;</script><script>" + readResource("/map/leaflet.js")
+                + "</script></head>"
                 + "<body><div id='map'></div><div id='offline'>Map tiles need an internet connection</div>"
-                + "<script>" + PAGE_JS + "</script></body></html>";
+                + "<script>var KEY='" + tileKey + "';" + PAGE_JS + "</script></body></html>";
     }
 
     private static String readResource(String path) {
@@ -132,13 +144,21 @@ public class MapView extends StackPane {
             + "font:12px 'IBM Plex Sans',sans-serif;padding:6px 10px;border-radius:6px;}";
 
     private static final String PAGE_JS =
-            "var LIGHT='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';"
-            + "var DARK='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';"
-            + "var map=L.map('map',{zoomControl:true}).setView([20.6,78.9],5);"
+            // with a CARTO key: CARTO Voyager (light) / Dark Matter (dark); without: standard OSM tiles
+            "var OSM='https://tile.openstreetmap.org/{z}/{x}/{y}.png';"
+            + "var LIGHT=KEY?'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key='+KEY:OSM;"
+            + "var DARK=KEY?'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key='+KEY:OSM;"
+            // animations off: JavaFX's built-in browser sometimes never finishes Leaflet's fade-in,
+            // which leaves map squares invisible (the "gaps")
+            + "var map=L.map('map',{zoomControl:true,fadeAnimation:false,zoomAnimation:false,"
+            + "markerZoomAnimation:false}).setView([20.6,78.9],5);"
             + "var tiles=L.tileLayer(LIGHT,{maxZoom:19,subdomains:'abcd',"
-            + "attribution:'&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(map);"
-            + "var tileErrors=0;tiles.on('tileerror',function(){tileErrors++;"
-            + "if(tileErrors>6)document.getElementById('offline').style.display='block';});"
+            + "attribution:KEY?'&copy; OpenStreetMap contributors &copy; CARTO':'&copy; OpenStreetMap contributors'}).addTo(map);"
+            // a square that failed to download is retried (up to 3 times, a little later each time)
+            + "var tileErrors=0;tiles.on('tileerror',function(e){var img=e.tile;var n=(img._retries||0)+1;"
+            + "if(n<=3){img._retries=n;var src=img.src.replace(/[?&]retry=\\d+/,'');"
+            + "setTimeout(function(){img.src=src+(src.indexOf('?')<0?'?':'&')+'retry='+n;},800*n);return;}"
+            + "tileErrors++;if(tileErrors>6)document.getElementById('offline').style.display='block';});"
             + "var layer=L.layerGroup().addTo(map);var trip=null;"
             + "function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}"
             + "function setTheme(d){tiles.setUrl(d?DARK:LIGHT);document.body.className=d?'dark':'';}"

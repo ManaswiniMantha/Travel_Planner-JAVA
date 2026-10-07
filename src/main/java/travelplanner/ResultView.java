@@ -5,6 +5,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
@@ -26,6 +27,8 @@ public class ResultView {
     private final MapView mapView = new MapView();
     private final ToggleGroup dayChips = new ToggleGroup();
     private final List<ToggleButton> chipList = new ArrayList<>();
+    private final ToggleGroup transportChoice = new ToggleGroup();
+    private final VBox costsHolder = new VBox();   // rebuilt when a transport option is picked
 
     public ResultView(Itinerary itinerary, Runnable onModify, Runnable onSave, Runnable onNewTrip) {
         this.itinerary = itinerary;
@@ -67,12 +70,14 @@ public class ResultView {
                     + "built-in demo places.", "warning-banner"));
         }
         for (String note : itinerary.getNotes()) column.getChildren().add(banner(note, "info-banner"));
+        if (!itinerary.getTransportOptions().isEmpty()) column.getChildren().add(gettingTherePanel(p));
 
         int index = 0;
         for (ArrayList<ItineraryItem> day : itinerary.getDays()) {
             column.getChildren().add(daySection(day, index++));
         }
-        column.getChildren().add(costsPanel());
+        costsHolder.getChildren().setAll(costsPanel());
+        column.getChildren().add(costsHolder);
 
         ScrollPane scroll = new ScrollPane(column);
         scroll.setFitToWidth(true);
@@ -302,6 +307,77 @@ public class ResultView {
         return line;
     }
 
+    // ------------------------------------------------------------------ getting there
+
+    /** Transport options for the journey from the start city and back, with rough prices. */
+    private VBox gettingTherePanel(UserPreferences p) {
+        Label title = new Label("Getting there and back");
+        title.getStyleClass().add("panel-title");
+        Label sub = new Label("From " + firstPart(itinerary.getStartLabel(), p.getStartLocation()) + ", "
+                + FileManager.startDistanceText(itinerary) + ". Prices are for a return journey for "
+                + (p.getTravelers() == 1 ? "1 traveller." : p.getTravelers() == 2 ? "both travellers."
+                : "all " + p.getTravelers() + " travellers."));
+        sub.getStyleClass().add("fact-label");
+        sub.setWrapText(true);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(18);
+        grid.setVgap(10);
+        ColumnConstraints grow = new ColumnConstraints();
+        grow.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(grow, new ColumnConstraints(), new ColumnConstraints());
+        double left = itinerary.getRemainingBudget();
+        int row = 0;
+        for (TransportOption o : itinerary.getTransportOptions()) {
+            RadioButton mode = new RadioButton(o.getMode().getIcon() + "  " + o.getMode().getDisplayName());
+            mode.getStyleClass().add("transport-choice");
+            mode.setToggleGroup(transportChoice);
+            mode.setUserData(o);
+            mode.setSelected(o == itinerary.getChosenTransport());
+            HBox modeBox = new HBox(8, mode);
+            modeBox.setAlignment(Pos.CENTER_LEFT);
+            if (o.isRecommended()) {
+                Label rec = new Label("Recommended");
+                rec.getStyleClass().add("must-see");
+                modeBox.getChildren().add(rec);
+            }
+            if (o.getReturnCostForGroup() <= left) {
+                Label fits = new Label("Fits what's left of your budget");
+                fits.getStyleClass().add("stop-tag");
+                modeBox.getChildren().add(fits);
+            }
+            Label time = new Label(o.getDurationText() + " each way");
+            time.getStyleClass().add("fact-label");
+            Label cost = new Label(Itinerary.formatInr(o.getReturnCostForGroup()));
+            cost.getStyleClass().add("fact-value");
+            grid.add(modeBox, 0, row);
+            grid.add(time, 1, row);
+            grid.add(cost, 2, row);
+            row++;
+        }
+
+        RadioButton none = new RadioButton("Not decided / already booked");
+        none.getStyleClass().add("transport-choice");
+        none.setToggleGroup(transportChoice);
+        none.setSelected(itinerary.getChosenTransport() == null);
+        grid.add(none, 0, row);
+
+        // picking an option adds it to the costs panel (the activity plan itself stays the same)
+        transportChoice.selectedToggleProperty().addListener((obs, old, now) -> {
+            itinerary.setChosenTransport(now == null ? null : (TransportOption) now.getUserData());
+            costsHolder.getChildren().setAll(costsPanel());
+        });
+
+        Label foot = new Label("Pick how you'll travel to add it to the costs below. Rough estimates from "
+                + "typical per-km fares, not live ticket prices.");
+        foot.getStyleClass().add("footnote");
+        foot.setWrapText(true);
+
+        VBox panel = new VBox(12, title, sub, grid, foot);
+        panel.getStyleClass().add("costs-panel");
+        return panel;
+    }
+
     // ------------------------------------------------------------------ costs
 
     private VBox costsPanel() {
@@ -309,8 +385,8 @@ public class ResultView {
         title.getStyleClass().add("panel-title");
 
         double budget = itinerary.getBudget();
-        double cost = itinerary.getTotalCost();
-        double remaining = itinerary.getRemainingBudget();
+        double cost = itinerary.getGrandTotal();          // includes the chosen journey, if any
+        double remaining = itinerary.getRemainingAfterJourney();
         boolean low = remaining < budget * 0.10;   // highlighted when negative or under 10% left
 
         // budget bar: how much of the budget the plan uses
@@ -325,8 +401,8 @@ public class ResultView {
         double share = budget <= 0 ? 0 : Math.min(1.0, cost / budget);
         fill.maxWidthProperty().bind(track.widthProperty().multiply(share));
         fill.setMinWidth(0);
-        Label barText = new Label("The plan uses " + Math.round(share * 100) + "% of your "
-                + Itinerary.formatInr(budget) + " budget");
+        long percent = budget <= 0 ? 0 : Math.round(cost / budget * 100);   // can go above 100%
+        Label barText = new Label("The plan uses " + percent + "% of your " + Itinerary.formatInr(budget) + " budget");
         barText.getStyleClass().add("fact-label");
 
         GridPane facts = new GridPane();
@@ -334,16 +410,25 @@ public class ResultView {
         facts.setVgap(8);
         String distancePrefix = itinerary.isUsedLiveRouting() ? "" : "≈ ";
         int row = 0;
-        addFact(facts, row, 0, "Estimated cost", Itinerary.formatInr(cost)
+        TransportOption journey = itinerary.getChosenTransport();
+        if (journey != null) {
+            addFact(facts, row, 0, "Activities and meals", Itinerary.formatInr(itinerary.getTotalCost()), null);
+            addFact(facts, row++, 2, "Travel (" + journey.getMode().getDisplayName().replaceAll(" \\(.*", "") + ")",
+                    Itinerary.formatInr(journey.getReturnCostForGroup()), null);
+        }
+        addFact(facts, row, 0, journey != null ? "Total" : "Estimated cost", Itinerary.formatInr(cost)
                 + suffix(itinerary.toLocalCurrency(cost)), null);
-        addFact(facts, row++, 2, "Left over", Itinerary.formatInr(remaining), low ? "bad" : "good");
+        addFact(facts, row++, 2, cost > budget ? "Over budget by" : "Left over",
+                Itinerary.formatInr(Math.abs(remaining)), low ? "bad" : "good");
         addFact(facts, row, 0, "Local transport", Itinerary.formatInr(itinerary.getTotalTransportCost()), null);
         addFact(facts, row++, 2, "Activities", String.valueOf(itinerary.getActivityCount()), null);
         addFact(facts, row, 0, "Travel distance", distancePrefix + String.format("%.1f km", itinerary.getTotalDistanceKm()), null);
         addFact(facts, row, 2, "Travel time", ItineraryItem.formatDuration(itinerary.getTotalTravelMinutes()), null);
 
-        Label foot = new Label("Entry fees, meals and local taxis are estimates. Hotels and travel between "
-                + "cities are not included.");
+        Label foot = new Label(journey != null
+                ? "All amounts are estimates. Hotels are not included."
+                : "Entry fees, meals and local taxis are estimates. Hotels and the journey to "
+                + itinerary.getPreferences().getDestination() + " are not included; pick a travel option above to add it.");
         foot.getStyleClass().add("footnote");
         foot.setWrapText(true);
 

@@ -506,6 +506,12 @@ public class TravelPlanner {
             itinerary.setStartToDestinationKm(straightKm);
             itinerary.setStartDistanceIsRoad(false);
         }
+        // transport options + prices for getting there and back (international -> flights only)
+        boolean sameCountry = start.getCountryCode().isEmpty() || dest.getCountryCode().isEmpty()
+                || start.getCountryCode().equalsIgnoreCase(dest.getCountryCode());
+        itinerary.setTransportOptions(TransportEstimator.estimate(straightKm,
+                itinerary.isStartDistanceIsRoad() ? km : -1, sameCountry, prefs.getTravelers()));
+
         if (straightKm > 800) itinerary.setTravelModeHint("✈ Consider flying");
         else if (straightKm > 300) itinerary.setTravelModeHint("🚆 Train or flight recommended");
         else if (straightKm > 20) itinerary.setTravelModeHint("🚗 Comfortable by road");

@@ -1,2 +1,5 @@
 ORS_API_KEY=YOUR_API_KEY_HERE
 SEARCH_RADIUS_KM=12
+# Optional: free key for a nicer map background (carto.com/basemaps/apikey).
+# Without it the map uses the standard OpenStreetMap tiles.
+CARTO_API_KEY=

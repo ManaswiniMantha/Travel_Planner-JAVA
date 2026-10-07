@@ -1,6 +1,7 @@
 package travelplanner;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The finished plan: a list of days (each day = list of ItineraryItem) plus totals and status flags.
@@ -16,6 +17,8 @@ public class Itinerary {
     private double startToDestinationKm = -1;      // -1 = unknown
     private boolean startDistanceIsRoad = false;   // true = live road distance, false = straight line
     private String travelModeHint = "";
+    private List<TransportOption> transportOptions = new ArrayList<>();   // getting there and back
+    private TransportOption chosenTransport;   // picked by the user on the result screen (null = none)
     private double destinationLat;                 // centre of the destination (used by the map)
     private double destinationLon;
 
@@ -66,6 +69,14 @@ public class Itinerary {
     public double getBudget() { return preferences.getBudget(); }
     public double getRemainingBudget() { return getBudget() - getTotalCost(); }
 
+    // ----- journey to the destination (chosen on the result screen, added on top of the plan) -----
+    public TransportOption getChosenTransport() { return chosenTransport; }
+    public void setChosenTransport(TransportOption option) { this.chosenTransport = option; }
+    public double getJourneyCost() { return chosenTransport == null ? 0 : chosenTransport.getReturnCostForGroup(); }
+    /** Activities + meals + local taxis + the chosen journey there and back. */
+    public double getGrandTotal() { return getTotalCost() + getJourneyCost(); }
+    public double getRemainingAfterJourney() { return getBudget() - getGrandTotal(); }
+
     /** "≈ €12" style text, or "" when the exchange rate is unavailable / trip is in India. */
     public String toLocalCurrency(double inr) {
         if (inrToLocalRate <= 0 || "INR".equals(currencyCode)) return "";
@@ -90,6 +101,8 @@ public class Itinerary {
     public boolean isStartDistanceIsRoad() { return startDistanceIsRoad; }
     public void setStartDistanceIsRoad(boolean road) { this.startDistanceIsRoad = road; }
     public String getTravelModeHint() { return travelModeHint; }
+    public List<TransportOption> getTransportOptions() { return transportOptions; }
+    public void setTransportOptions(List<TransportOption> options) { this.transportOptions = options; }
     public double getDestinationLat() { return destinationLat; }
     public double getDestinationLon() { return destinationLon; }
     public void setDestinationCoordinates(double lat, double lon) {

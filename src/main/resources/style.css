@@ -293,6 +293,12 @@
 .fact-value.bad { -fx-text-fill: -c-error-text; }
 .footnote { -fx-text-fill: -c-muted; -fx-font-size: 12px; }
 
+/* transport choice (radio buttons) */
+.transport-choice { -fx-text-fill: -c-text; -fx-font-size: 15px; -fx-font-weight: bold; -fx-cursor: hand; }
+.transport-choice .radio { -fx-background-color: -c-line, -c-surface; }
+.transport-choice:selected .radio .dot { -fx-background-color: -c-accent; }
+.transport-choice:selected .radio { -fx-background-color: -c-accent, -c-surface; }
+
 /* map side */
 .map-column { -fx-background-color: -c-surface; }
 .map-toolbar { -fx-padding: 10 12 10 12; -fx-spacing: 6; -fx-background-color: -c-surface; }

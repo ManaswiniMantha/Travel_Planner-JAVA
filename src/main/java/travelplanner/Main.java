@@ -41,6 +41,7 @@ public class Main extends Application {
         ConfigLoader config = new ConfigLoader();
         OpenRouteServiceClient orsClient = new OpenRouteServiceClient(config);
         planner = new TravelPlanner(config, orsClient);
+        MapView.setTileKey(config.getMapTileKey());   // map background: CARTO with key, else OpenStreetMap
 
         planningView = new PlanningView(orsClient, config, this::generateItinerary, this::clearCache);
         buildLoadingOverlay();
