@@ -6,3 +6,7 @@ target/
 .idea/
 .vscode/
 *.iml
+*.zip
+src (*)/
+* (1).*
+* (2).*
